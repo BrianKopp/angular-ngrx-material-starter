@@ -1,24 +1,13 @@
 import browser from 'browser-detect';
 import { Component, OnInit } from '@angular/core';
-import { Store, select } from '@ngrx/store';
-import { Observable } from 'rxjs';
-
 import { environment as env } from '../../environments/environment';
 
 import {
-  authLogin,
-  authLogout,
   routeAnimations,
-  LocalStorageService,
-  selectIsAuthenticated,
-  selectSettingsStickyHeader,
-  selectSettingsLanguage,
-  selectEffectiveTheme
+  LocalStorageService
 } from '../core/core.module';
-import {
-  actionSettingsChangeAnimationsPageDisabled,
-  actionSettingsChangeLanguage
-} from '../core/settings/settings.actions';
+import { SettingsFacade } from '../core/settings/settings.facade';
+import { AuthFacade } from '../core/auth/auth.facade';
 
 @Component({
   selector: 'anms-root',
@@ -31,25 +20,16 @@ export class AppComponent implements OnInit {
   envName = env.envName;
   version = env.versions.app;
   year = new Date().getFullYear();
-  languages = ['en', 'de', 'sk', 'fr', 'es', 'pt-br', 'zh-cn', 'he'];
-  navigation = [
-    { link: 'about', label: 'anms.menu.about' },
-    { link: 'feature-list', label: 'anms.menu.features' },
-    { link: 'examples', label: 'anms.menu.examples' }
-  ];
-  navigationSideMenu = [
-    ...this.navigation,
-    { link: 'settings', label: 'anms.menu.settings' }
-  ];
 
-  isAuthenticated$: Observable<boolean>;
-  stickyHeader$: Observable<boolean>;
-  language$: Observable<string>;
-  theme$: Observable<string>;
+  isAuthenticated$ = this.authFacade.isAuthenticated$;
+  stickyHeader$ = this.settingsFacade.stickyHeaders$;
+  language$ = this.settingsFacade.language$;
+  theme$ = this.settingsFacade.theme$;
 
   constructor(
-    private store: Store,
-    private storageService: LocalStorageService
+    private storageService: LocalStorageService,
+    private settingsFacade: SettingsFacade,
+    private authFacade: AuthFacade
   ) {}
 
   private static isIEorEdgeOrSafari() {
@@ -59,28 +39,19 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     this.storageService.testLocalStorage();
     if (AppComponent.isIEorEdgeOrSafari()) {
-      this.store.dispatch(
-        actionSettingsChangeAnimationsPageDisabled({
-          pageAnimationsDisabled: true
-        })
-      );
+      this.settingsFacade.setPageAnimation(true);
     }
-
-    this.isAuthenticated$ = this.store.pipe(select(selectIsAuthenticated));
-    this.stickyHeader$ = this.store.pipe(select(selectSettingsStickyHeader));
-    this.language$ = this.store.pipe(select(selectSettingsLanguage));
-    this.theme$ = this.store.pipe(select(selectEffectiveTheme));
   }
 
   onLoginClick() {
-    this.store.dispatch(authLogin());
+    this.authFacade.login();
   }
 
   onLogoutClick() {
-    this.store.dispatch(authLogout());
+    this.authFacade.logout();
   }
 
   onLanguageSelect({ value: language }) {
-    this.store.dispatch(actionSettingsChangeLanguage({ language }));
+    this.settingsFacade.setLanguage(language);
   }
 }
